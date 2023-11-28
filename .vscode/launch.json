@@ -1,0 +1,24 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Testin (Windows)",
+            "program": "${workspaceFolder}/bin/testin.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}/bin"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Testin (UNIX)",
+            "program": "${workspaceFolder}/bin/testin",
+            "args": [],
+            "cwd": "${workspaceFolder}/bin"
+        }
+    ]
+}
