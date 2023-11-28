@@ -1,0 +1,3 @@
+[submodule "3rdparty/base"]
+	path = 3rdparty/base
+	url = https://github.com/Alepacho/base.git
