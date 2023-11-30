@@ -9,7 +9,9 @@
 		self->title = [[String alloc] initWithBuffer:"Osnova!"];
 		self->width = 800;
 		self->height = 600;
-
+		self->resizable = NO;
+		self->focus = NO;
+		self->closed = NO;
 		[Osnova createWindow:self];
 	}
 
@@ -19,9 +21,23 @@
 - (id)initTitle:(const char*)newTitle
 	  initWidth:(int)newWidth
 	 initHeight:(int)newHeight {
+	return [self initTitle:newTitle
+					 initX:-1
+					 initY:-1
+				 initWidth:newWidth
+				initHeight:newHeight];
+}
+
+- (id)initTitle:(const char*)newTitle
+		  initX:(int)newX
+		  initY:(int)newY
+	  initWidth:(int)newWidth
+	 initHeight:(int)newHeight {
 	self = [self init];
 
 	[self->title setBuffer:newTitle];
+	self->x = newX;
+	self->y = newY;
 	self->width = newWidth;
 	self->height = newHeight;
 
@@ -40,6 +56,14 @@
 	return self->title;
 }
 
+- (int)x {
+	return self->x;
+}
+
+- (int)y {
+	return self->y;
+}
+
 - (int)width {
 	return self->width;
 }
@@ -48,36 +72,64 @@
 	return self->height;
 }
 
-- (id)data {
+- (BOOL)resizable {
+	return self->resizable;
+}
+
+- (BOOL)focus {
+	return self->focus;
+}
+
+- (OsnovaWindowData)data {
 	return self->data;
 }
 
-- (void)setTitle:(const char*)newTitle {
-	[Osnova window:self setTitle:newTitle];
-	[self->title setBuffer:newTitle];
+- (void)setTitle:(const char*)value {
+	[Osnova window:self setTitle:value];
 }
 
-- (void)setWidth:(int)newWidth {
-	[Osnova window:self setWidth:newWidth];
-	self->width = newWidth;
+- (void)setX:(int)value {
+	[Osnova window:self setX:value];
 }
 
-- (void)setHeight:(int)newHeight {
-	[Osnova window:self setHeight:newHeight];
-	self->height = newHeight;
+- (void)setX:(int)X setY:(int)Y {
+	[Osnova window:self setX:X setY:Y];
 }
 
-- (void)setData:(id)newData {
-	if (self->data != nil)
-		@throw [[Exception alloc] initWithFormat:"Window is already defined!"];
-	self->data = newData;
+- (void)setY:(int)value {
+	[Osnova window:self setY:value];
 }
 
-- (BOOL)shouldClose {
-	return false;
+- (void)setWidth:(int)value {
+	[Osnova window:self setWidth:value];
+}
+
+- (void)setHeight:(int)value {
+	[Osnova window:self setHeight:value];
+}
+
+- (void)setResizable:(BOOL)flag {
+	[Osnova window:self setResizable:flag];
+}
+
+- (void)setFocus:(BOOL)flag {
+	[Osnova window:self setFocus:flag];
+}
+
+- (void)setData:(OsnovaWindowData)value {
+	[Osnova window:self setData:value];
+}
+
+- (OsnovaEvent*)pollEvents {
+	return [Osnova pollEvents:self];
+}
+
+- (BOOL)isClosed {
+	return closed;
 }
 
 - (void)swapBuffers {
+	[Osnova swapBuffers:self];
 }
 
 @end
