@@ -5,14 +5,16 @@
 - (id)init {
 	self = [super init];
 
+	// TODO: tell user to use 'init with parameters'
+	//       instead (make windowCreated property?)
+
 	if (self) {
 		self->title = [[String alloc] initWithBuffer:"Osnova!"];
 		self->width = 800;
 		self->height = 600;
-		self->resizable = NO;
-		self->focus = NO;
+		self->resizable = YES;
+		self->focus = YES;
 		self->closed = NO;
-		[Osnova createWindow:self];
 	}
 
 	return self;
@@ -41,6 +43,8 @@
 	self->width = newWidth;
 	self->height = newHeight;
 
+	[Osnova createWindow:self];
+
 	return self;
 }
 
@@ -50,6 +54,10 @@
 		self->title = nil;
 	}
 	[super dealloc];
+}
+
+- (void)close {
+	[Osnova closeWindow:self];
 }
 
 - (String*)title {
@@ -114,10 +122,6 @@
 
 - (void)setFocus:(BOOL)flag {
 	[Osnova window:self setFocus:flag];
-}
-
-- (void)setData:(OsnovaWindowData)value {
-	[Osnova window:self setData:value];
 }
 
 - (OsnovaEvent*)pollEvents {

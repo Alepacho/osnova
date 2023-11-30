@@ -45,6 +45,7 @@ typedef struct OsnovaWindowData {
 	  initWidth:(int)newWidth
 	 initHeight:(int)newHeight;
 - (void)dealloc;
+- (void)close;
 
 - (String*)title;
 - (int)x;
@@ -63,7 +64,7 @@ typedef struct OsnovaWindowData {
 - (void)setHeight:(int)value;
 - (void)setResizable:(BOOL)flag;
 - (void)setFocus:(BOOL)flag;
-- (void)setData:(OsnovaWindowData)value;
+// - (void)setData:(OsnovaWindowData)value;
 
 - (OsnovaEvent*)pollEvents;
 - (BOOL)isClosed;
