@@ -11,6 +11,7 @@ typedef enum OsnovaEventType {
 	OSNOVA_EV_NONE,
 	OSNOVA_EV_MOUSE,
 	OSNOVA_EV_KEYBOARD,
+	OSNOVA_EV_CLOSE,
 } OsnovaEventType;
 
 @interface OsnovaEvent : BaseObject {
@@ -40,8 +41,8 @@ typedef enum OsnovaEventType {
 + (void)window:(OsnovaWindow*)window setResizable:(BOOL)flag;
 + (void)window:(OsnovaWindow*)window setData:(OsnovaWindowData)data;
 
++ (size_t)windowCount;
 + (OsnovaEvent*)pollEvents:(OsnovaWindow*)window;
-+ (BOOL)shouldClose:(OsnovaWindow*)window;
 + (void)swapBuffers:(OsnovaWindow*)window;
 
 @end

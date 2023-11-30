@@ -11,6 +11,7 @@
 - (void)updX:(int)X updY:(int)Y;
 - (void)updY:(int)value;
 - (void)updWidth:(int)value;
+- (void)updWidth:(int)newWidth updHeight:(int)newHeight;
 - (void)updHeight:(int)value;
 - (void)updResizable:(BOOL)flag;
 - (void)updFocus:(BOOL)flag;
@@ -35,6 +36,10 @@
 }
 - (void)updWidth:(int)value {
 	self->width = value;
+}
+- (void)updWidth:(int)newWidth updHeight:(int)newHeight {
+	self->width = newWidth;
+	self->height = newHeight;
 }
 - (void)updHeight:(int)value {
 	self->height = value;
@@ -73,6 +78,7 @@
 - (void)applicationWillFinishLaunching:(NSNotification*)notification;
 - (void)applicationDidFinishLaunching:(NSNotification*)notification;
 - (void)applicationDidHide:(NSNotification*)notification;
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)sender;
 @end
 
 @interface OsnovaWindowDelegate : NSObject <NSWindowDelegate> {
@@ -92,9 +98,10 @@
 - (void)windowDidChangeOcclusionState:(NSNotification*)notification;
 @end
 
+static NSApplication* app;
 static OsnovaAppDelegate* appDelegate;
 static NSAutoreleasePool* pool;
-// static Array<OsnovaWindow*>* windows;
+static Array<OsnovaWindow*>* windowArray;
 
 //
 
@@ -113,31 +120,73 @@ static NSAutoreleasePool* pool;
 // === Application Delegate ====================================================
 
 @implementation OsnovaAppDelegate
+
 - (void)createMenuBar {
-	//
-	NSMenu* bar = [NSMenu new];
-	[NSApp setMainMenu:bar];
+	NSString* appName = [[NSProcessInfo processInfo] processName];
 
-	//
-	NSMenu* menu = [NSMenu new];
-	NSString* quitTitle = @"Quit";
-	NSMenuItem* quitItem =
-		[[NSMenuItem alloc] initWithTitle:quitTitle
-								   action:@selector(terminate:)
-							keyEquivalent:@"q"];
-	[menu addItem:quitItem];
+	// This is a main menu bar (that the first with process name)
+	NSMenu* mainMenu = [[NSMenu alloc] init];
+	NSMenuItem* mainMenuItem = [[NSMenuItem alloc] init];
+	[mainMenu addItem:mainMenuItem];
+	[app setMainMenu:mainMenu];
 
-	//
-	NSMenuItem* menuItem = [NSMenuItem new];
-	[bar addItem:menuItem];
-	[menuItem setSubmenu:menu];
-	// [NSApp setWindowsMenu:menu];
+	// This is a submenu of the main menu
+	NSMenu* mainSubmenu = [[NSMenu alloc] init];
+
+	// This is an 'About' button
+	NSMenuItem* mainItemAbout = [[NSMenuItem alloc]
+		initWithTitle:[@"About " stringByAppendingString:appName]
+			   action:@selector(orderFrontStandardAboutPanel:)
+		keyEquivalent:@""];
+	[mainSubmenu addItem:mainItemAbout];
+
+	[mainSubmenu addItem:[NSMenuItem separatorItem]];
+
+	// This is the 'Hide' buttons
+	NSMenuItem* mainItemHide = [[NSMenuItem alloc]
+		initWithTitle:[@"Hide " stringByAppendingString:appName]
+			   action:@selector(hide:)
+		keyEquivalent:@"h"];
+	[mainSubmenu addItem:mainItemHide];
+
+	NSMenuItem* mainItemHideOthers =
+		[[NSMenuItem alloc] initWithTitle:@"Hide Others"
+								   action:@selector(hideOtherApplications:)
+							keyEquivalent:@"h"];
+
+	// clang-format off
+	[mainItemHideOthers setKeyEquivalentModifierMask
+		: NSEventModifierFlagOption 
+		| NSEventModifierFlagCommand
+	];
+	// clang-format on
+
+	[mainSubmenu addItem:mainItemHideOthers];
+
+	[mainSubmenu addItem:[NSMenuItem separatorItem]];
+
+	// This is a 'Quit' button
+	NSMenuItem* mainItemQuit = [[NSMenuItem alloc]
+		initWithTitle:[@"Quit " stringByAppendingString:appName]
+			   action:@selector(terminate:)
+		keyEquivalent:@"q"];
+	// Now we add quit button to submenu
+	[mainSubmenu addItem:mainItemQuit];
+
+	// And then add submenu to main menu
+	[mainMenuItem setSubmenu:mainSubmenu];
 }
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:
 	(NSApplication*)sender {
-	[System fatal:"Unimplemented method '%s'", __func__];
-	// TODO: close all windows
+	// [System fatal:"Unimplemented method '%s'", __func__];
+	[System debug:__func__];
+
+	while ([windowArray count] != 0) {
+		OsnovaWindow* ow = [windowArray getFirst];
+		[ow close];
+	}
+
 	return NSTerminateCancel;
 }
 
@@ -146,18 +195,24 @@ static NSAutoreleasePool* pool;
 // }
 
 - (void)applicationWillFinishLaunching:(NSNotification*)notification {
-	// [System fatal:"Unimplemented method '%s'", __func__];
-	[System debug:__func__];
 	[self createMenuBar];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification*)notification {
-	// [System fatal:"Unimplemented method '%s'", __func__];
-	[NSApp stop:nil];
+	// Placed it here to make menu bar work
+	[app setActivationPolicy:NSApplicationActivationPolicyRegular];
+	[app activateIgnoringOtherApps:YES];
 }
 
 - (void)applicationDidHide:(NSNotification*)notification {
 	[System fatal:"Unimplemented method '%s'", __func__];
+}
+
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)sender {
+	if ([windowArray count] != 0) {
+		[System fatal:"window array is not empty!"];
+	}
+	return YES;
 }
 
 @end
@@ -182,11 +237,24 @@ static NSAutoreleasePool* pool;
 
 - (BOOL)windowShouldClose:(NSWindow*)sender {
 	[window updClosed:YES];
-	return NO;
+
+	for (size_t i = 0; i < [windowArray count]; i++) {
+		OsnovaWindow* ow = [windowArray getByIndex:i];
+		if ([ow data].object == sender) {
+			[windowArray remove:i];
+			break;
+		}
+	}
+
+	// [sender close];
+	return YES;
 }
 
 - (void)windowDidResize:(NSNotification*)notification {
-	[System fatal:"Unimplemented method '%s'", __func__];
+	// [System fatal:"Unimplemented method '%s'", __func__];
+	OsnovaWindowData wd = [window data];
+	const NSRect frame = [wd.view frame];
+	[window updWidth:frame.size.width updHeight:frame.size.height];
 }
 
 - (void)windowDidMove:(NSNotification*)notification {
@@ -209,14 +277,13 @@ static NSAutoreleasePool* pool;
 }
 
 - (void)windowDidResignKey:(NSNotification*)notification {
-	// [System debug:__func__];
 	[window updFocus:NO];
 }
 
 - (void)windowDidChangeOcclusionState:(NSNotification*)notification {
 	OsnovaWindowData wd = [window data];
 	wd.occluded = !([wd.object occlusionState] & NSWindowOcclusionStateVisible);
-	[window setData:wd];
+	[window updData:wd];
 }
 
 @end
@@ -226,26 +293,22 @@ static NSAutoreleasePool* pool;
 @implementation Osnova
 
 + (void)begin {
-	// windows = [Array new];
+	windowArray = [Array new];
 	pool = [NSAutoreleasePool new];
-
-	[NSApplication sharedApplication];
+	app = [NSApplication sharedApplication]; // TODO: change back to NSApp
 
 	appDelegate = [OsnovaAppDelegate new];
 	if (appDelegate == nil)
 		@throw [[Exception alloc]
 			initWithFormat:"Unable to init %s", "application delegate"];
 
-	[NSApp setDelegate:appDelegate];
-
-	[NSApp finishLaunching];
-
-	[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+	[app setDelegate:appDelegate];
+	[app finishLaunching];
 }
 
 + (void)end {
-	// [windows dealloc];
-	[appDelegate dealloc];
+	// [appDelegate dealloc]; will cause seg fault
+	[windowArray release];
 	[pool drain];
 }
 
@@ -267,12 +330,11 @@ static NSAutoreleasePool* pool;
 	BOOL centerX = NO;
 	BOOL centerY = NO;
 
-	[System debug:"{ x = %i, y = %i }", x, y];
-
 	if (x < 0) {
 		x = 0;
 		centerX = YES;
 	}
+
 	if (y < 0) {
 		y = 0;
 		centerY = YES;
@@ -283,10 +345,14 @@ static NSAutoreleasePool* pool;
 	// clang-format off
 	NSUInteger windowStyle 
 		= NSWindowStyleMaskTitled 
+		| NSWindowStyleMaskMiniaturizable
 		| NSWindowStyleMaskClosable
 		;
 	// clang-format on
-	if ([window resizable]) windowStyle |= NSWindowStyleMaskResizable;
+
+	if ([window resizable]) {
+		windowStyle |= NSWindowStyleMaskResizable;
+	}
 
 	wd.object = [[NSWindow alloc] initWithContentRect:viewRect
 											styleMask:windowStyle
@@ -309,7 +375,7 @@ static NSAutoreleasePool* pool;
 	[wd.object setOpaque:YES];
 	// [wd.object setAutodisplay:YES]; // derecated
 
-	// wd.view = [wd.object contentView];
+	wd.view = [wd.object contentView];
 	// if ([wd.object respondsToSelector:@selector(setTabbingMode:)])
 	// 	[wd.object setTabbingMode:NSWindowTabbingModeDisallowed];
 
@@ -317,17 +383,20 @@ static NSAutoreleasePool* pool;
 	const CGFloat w = NSWidth([wd.object frame]);
 	const CGFloat h = NSHeight([wd.object frame]);
 	if (centerX) x = NSWidth([[wd.object screen] frame]) / 2 - w / 2;
-	if (centerY) y = NSHeight([[wd.object screen] frame]) / 2 - h / 2;
+	if (centerY)
+		y = NSHeight([[wd.object screen] frame]) / 2 - h / 2;
+	else {
+		y = h - y; // they use 0 as bottom for some reason
+	}
 	[wd.object setFrame:NSMakeRect(x, y, w, h) display:YES];
+	[wd.object makeKeyAndOrderFront:nil];
 
-	[window setData:wd];
-	// [windows push:window];
-
-	[Osnova window:window setFocus:YES];
+	[window updData:wd];
+	[windowArray push:window];
 }
 
 + (void)closeWindow:(OsnovaWindow*)window {
-	[System fatal:"Unimplemented method '%s'", __func__];
+	[[window data].object performClose:[window data].object];
 }
 
 + (void)window:(OsnovaWindow*)window setTitle:(const char*)value {
@@ -335,7 +404,6 @@ static NSAutoreleasePool* pool;
 }
 
 + (void)window:(OsnovaWindow*)window setX:(int)value {
-	// [System fatal:"Unimplemented method '%s'", __func__];
 	[window updX:value];
 }
 
@@ -358,7 +426,7 @@ static NSAutoreleasePool* pool;
 + (void)window:(OsnovaWindow*)window setFocus:(BOOL)flag {
 	if (flag == YES) {
 		// [[window data].object orderFront:nil];
-		[NSApp activateIgnoringOtherApps:YES];
+		[app activateIgnoringOtherApps:YES];
 		[[window data].object makeKeyAndOrderFront:nil];
 	} else
 		[System fatal:"Unimplemented method '%s'", __func__];
@@ -373,24 +441,24 @@ static NSAutoreleasePool* pool;
 	[window updData:data];
 }
 
++ (size_t)windowCount {
+	return [windowArray count];
+}
+
 + (OsnovaEvent*)pollEvents:(OsnovaWindow*)window {
 	NSEvent* event;
-	event = [NSApp nextEventMatchingMask:NSUIntegerMax
-							   untilDate:[NSDate distantFuture]
-								  inMode:NSDefaultRunLoopMode
-								 dequeue:YES];
+	event = [app nextEventMatchingMask:NSUIntegerMax
+							 untilDate:[NSDate distantFuture]
+								inMode:NSDefaultRunLoopMode
+							   dequeue:YES];
 	if (event != nil) {
 		// NSEventType type = [event type];
 		// NSLog(@"Got event: %lu", (unsigned long)type);
-		[NSApp sendEvent:event];
+		[app sendEvent:event];
 	}
 
-	[NSApp updateWindows];
+	[app updateWindows];
 	return nil;
-}
-
-+ (BOOL)shouldClose:(OsnovaWindow*)window {
-	return false;
 }
 
 + (void)swapBuffers:(OsnovaWindow*)window {
