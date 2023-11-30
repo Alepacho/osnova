@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.27)
 
 # set(CMAKE_FIND_DEBUG_MODE 1)
-set(PROJECT_NAME "testin")
+set(PROJECT_NAME "playground")
 project(${PROJECT_NAME} C)
 
 set(CMAKE_C_STANDARD 11)
